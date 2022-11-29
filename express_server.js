@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const PORT = 8080;
 
+app.use(express.urlencoded({ extended: true }));
 // Setting ejs as the view engine to tell EXpress app to use EJS as its templating engine
 app.set("view engine", "ejs");
 
@@ -18,10 +19,6 @@ app.get("/urls.json", (req, res) => {
     res.json(urlDatabase);
   });
 
-app.get("/hello", (req, res) => {
-    res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
-
 app.get("/urls", (req, res) => {
     const templateVars = { urls: urlDatabase };
     res.render("urls_index", templateVars);
@@ -32,6 +29,17 @@ app.get("/urls/:id", (req, res) => {
     res.render("urls_show", templateVars);
 });
 
+app.get("/urls/new", (req,res) => {
+    res.render("urls_new");
+})
+
+app.post("/urls", (req, res) => {
+    console.log(req.body); // Log the POST request body to the console
+    res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  });
+
 app.listen(PORT, () => {
     console.log(`Example app listening on port ${PORT}!`);
 });
+
+function generateRandomString() {}
