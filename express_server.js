@@ -11,6 +11,12 @@ const urlDatabase = {
     "9sm5xK": "http://www.google.com"
 };
 
+// implement a function that returns a string of 6 random alphanumeric characters
+function generateRandomString() {
+    return Math.random().toString(36).slice(2,8);
+};
+// console.log(generateRandomString())
+
 app.get("/", (req, res) => {
     res.send("Hello!"); // Welcome page/ root path will say Hello
 });
@@ -28,6 +34,13 @@ app.get("/urls/new", (req,res) => {
     res.render("urls_new");
 })
 
+app.post("/urls", (req, res) => {
+    console.log("REQ BODY", req.body);
+    const randomStr = generateRandomString();
+    urlDatabase[randomStr] = req.body.longURL;
+    res.redirect(`urls/${randomStr}`); 
+});
+
 app.get("/urls/:id", (req, res) => {
     const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id]};
     res.render("urls_show", templateVars);
@@ -38,6 +51,7 @@ app.get("/u/:id", (req, res) => {
     res.redirect(longURL);
 });
 
+// DELETING URL
 app.post("/urls/:id/delete", (req, res) => {
     delete urlDatabase[req.params.id]
     res.redirect("/urls");
@@ -47,9 +61,3 @@ app.listen(PORT, () => {
     console.log(`Example app listening on port ${PORT}!`);
 });
 
-// implement a function that returns a string of 6 random alphanumeric characters
-function generateRandomString() {
-    return Math.random().toString(36).slice(2,8);
-};
-
-console.log(generateRandomString())
