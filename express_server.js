@@ -34,7 +34,7 @@ const users = {
 // ----------------- HELPER FUNCTIONS ----------------------
 function generateRandomString() {
   return (Math.random() + 1).toString(36).slice(2,8);
-};
+}
 
 // Check if email used for registration already exist/used
 const checkEmailAvailable = (newEmail) => {
@@ -50,7 +50,7 @@ const checkEmailAvailable = (newEmail) => {
 //------------------------------------------------------------
 
 app.get("/", (req, res) => {
-  res.send("Hello!"); 
+  res.send("Hello!");
 });
 
 app.get("/urls.json", (req, res) => {
@@ -59,25 +59,37 @@ app.get("/urls.json", (req, res) => {
 
 // HOME
 app.get("/urls", (req, res) => {
-   const templateVars = { 
-    urls: urlDatabase, 
+  const templateVars = {
+    urls: urlDatabase,
     user: req.cookies["user_id"]};
-    res.render("urls_index", templateVars);
+  res.render("urls_index", templateVars);
 });
 
 app.post("/urls", (req, res) => {
-  const randomStr = generateRandomString();
-  urlDatabase[randomStr] = req.body.longURL;
-  res.redirect(`urls/${randomStr}`);
+  if (!req.cookies["user_id"]) {
+    res.status(401).send("Login to shorten URL");
+  } else {
+    const randomStr = generateRandomString();
+    urlDatabase[randomStr] = {
+      longURL: req.body.longURL,
+      userID: req.cookies["user_id"]
+    };
+    res.redirect(`urls/${randomStr}`);
+  }
 });
 
 app.get("/urls/new", (req,res) => {
-  const templateVars = { user: users[req.cookies["user_id"]] };
-  res.render("urls_new", templateVars);
+  const templateVars = {
+    user: users[req.cookies["user_id"]]
+  };
+  if (templateVars.user) {
+    res.render("urls_new", templateVars);
+  }
+  res.render("login", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { 
+  const templateVars = {
     id: req.params.id,
     longURL: urlDatabase[req.params.id],
     user: users[req.cookies["user_id"]]
@@ -86,6 +98,10 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
+
+  if (!urlDatabase[req.params.id]) {
+    res.status(404).send("URL ID does not exist");
+  }
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL);
 });
@@ -106,6 +122,9 @@ app.post("/urls/:id/delete", (req, res) => {
 app.get("/register", (req, res) => {
   const templateVars = {
     user: users[req.cookies["user_id"]]
+  };
+  if (templateVars.user) {
+    res.redirect("/urls");
   }
   res.render("register", templateVars);
 });
@@ -117,10 +136,10 @@ app.post("/register", (req, res) => {
 
   if (registerEmail === "" || registerPassword === "") {
     res.status(400).send("Please fill in the empty spaces");
-  };
+  }
 
   if (checkEmailAvailable(registerEmail)) {
-    res.status(400).send("That email is taken. Try another")
+    res.status(400).send("That email is taken. Try another");
   }
 
   users[id] = {id: id, email: registerEmail, password: registerPassword};
@@ -144,15 +163,15 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const userEmail = req.body.email;
   const userPassword = req.body.password;
-  const user = checkEmailAvailable(userEmail)
+  const user = checkEmailAvailable(userEmail);
   
-  if(!user) {
+  if (!user) {
     res.status(403).send("User cannot be found");
-  };
+  }
 
   if (userPassword !== users[user].password) {
     res.status(403).send("Incorrect password");
-  };
+  }
 
   res.cookie("user_id", user);
   res.redirect("/urls");
@@ -160,8 +179,8 @@ app.post("/login", (req, res) => {
 
 // LOGOUT
 app.post("/logout", (req, res) => {
-    res.clearCookie('user_id')
-    res.redirect("/login")
+  res.clearCookie('user_id');
+  res.redirect("/login");
 });
 
 
