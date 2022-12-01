@@ -126,7 +126,14 @@ app.post("/register", (req, res) => {
 
 // LOGIN
 app.get("/login", (req, res) => {
-  res.render('login');
+  const templateVars = {
+    user: users[req.cookies["user_id"]]
+  };
+  if (templateVars.user) {
+    res.redirect("/urls");
+  } else {
+    res.render("login", templateVars);
+  }
 });
 
 app.post("/login", (req, res) => {
@@ -134,6 +141,7 @@ app.post("/login", (req, res) => {
   res.redirect("/urls");
 });
 
+// LOGOUT
 app.post("/logout", (req, res) => {
     res.clearCookie('username', req.cookies["username"])
     res.redirect("/urls")
