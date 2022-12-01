@@ -37,14 +37,15 @@ function generateRandomString() {
 };
 
 // Check if email used for registration already exist/used
-function checkEmailAvailable(newEmail, storedData) {
-  for (const user in storedData) {
-    if (storedData[user].email === newEmail) {
-      return false;
+const checkEmailAvailable = (newEmail) => {
+  for (const user in users) {
+    if (newEmail === users[user].email) {
+      return users[user].id;
     }
   }
-  return true;
+  return false;
 };
+
 
 //------------------------------------------------------------
 
@@ -58,7 +59,9 @@ app.get("/urls.json", (req, res) => {
 
 // HOME
 app.get("/urls", (req, res) => {
-   const templateVars = { urls: urlDatabase, user: req.cookies["user_id"]};
+   const templateVars = { 
+    urls: urlDatabase, 
+    user: req.cookies["user_id"]};
     res.render("urls_index", templateVars);
 });
 
@@ -69,14 +72,16 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req,res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const templateVars = { user: users[req.cookies["user_id"]] };
   res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id,
+  const templateVars = { 
+    id: req.params.id,
     longURL: urlDatabase[req.params.id],
-    username: req.cookies["username"] };
+    user: users[req.cookies["user_id"]]
+  };
   res.render("urls_show", templateVars);
 });
 
@@ -102,7 +107,7 @@ app.get("/register", (req, res) => {
   const templateVars = {
     user: users[req.cookies["user_id"]]
   }
-  res.render("register");
+  res.render("register", templateVars);
 });
 
 app.post("/register", (req, res) => {
@@ -114,7 +119,7 @@ app.post("/register", (req, res) => {
     res.status(400).send("Please fill in the empty spaces");
   };
 
-  if (!checkEmailAvailable(registerEmail, users)) {
+  if (checkEmailAvailable(registerEmail)) {
     res.status(400).send("That email is taken. Try another")
   }
 
@@ -137,14 +142,26 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
+  const userEmail = req.body.email;
+  const userPassword = req.body.password;
+  const user = checkEmailAvailable(userEmail)
+  
+  if(!user) {
+    res.status(403).send("User cannot be found");
+  };
+
+  if (userPassword !== users[user].password) {
+    res.status(403).send("Incorrect password");
+  };
+
+  res.cookie("user_id", user);
   res.redirect("/urls");
 });
 
 // LOGOUT
 app.post("/logout", (req, res) => {
-    res.clearCookie('username', req.cookies["username"])
-    res.redirect("/urls")
+    res.clearCookie('user_id')
+    res.redirect("/login")
 });
 
 
