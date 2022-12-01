@@ -7,6 +7,7 @@ app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.use(cookieParser());
 
+// ----------------- STORED DATA ----------------------
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -30,9 +31,22 @@ const users = {
   }
 };
 
+// ----------------- HELPER FUNCTIONS ----------------------
 function generateRandomString() {
   return (Math.random() + 1).toString(36).slice(2,8);
 };
+
+// Check if email used for registration already exist/used
+function checkEmailAvailable(newEmail, storedData) {
+  for (const user in storedData) {
+    if (storedData[user].email === newEmail) {
+      return false;
+    }
+  }
+  return true;
+};
+
+//------------------------------------------------------------
 
 app.get("/", (req, res) => {
   res.send("Hello!"); 
@@ -42,27 +56,21 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+// HOME
 app.get("/urls", (req, res) => {
-  const user = req.cookies["user_id"]
-  if (!user) {
-    res.status(401)
-  } else {
-    const templateVars = { urls: urlDatabase, user: req.cookies["user_id"]};
+   const templateVars = { urls: urlDatabase, user: req.cookies["user_id"]};
     res.render("urls_index", templateVars);
-  }
+});
 
+app.post("/urls", (req, res) => {
+  const randomStr = generateRandomString();
+  urlDatabase[randomStr] = req.body.longURL;
+  res.redirect(`urls/${randomStr}`);
 });
 
 app.get("/urls/new", (req,res) => {
   const templateVars = { username: req.cookies["username"] };
   res.render("urls_new", templateVars);
-});
-
-app.post("/urls", (req, res) => {
-  console.log("REQ BODY", req.body);
-  const randomStr = generateRandomString();
-  urlDatabase[randomStr] = req.body.longURL;
-  res.redirect(`urls/${randomStr}`);
 });
 
 app.get("/urls/:id", (req, res) => {
@@ -98,38 +106,33 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  const userEmail = req.body.email;
-  const userPassword = req.body.password;
+  const registerEmail = req.body.email;
+  const registerPassword = req.body.password;
   const id = generateRandomString();
 
-  users[id] = {id: id, email: userEmail, password: userPassword};
+  if (registerEmail === "" || registerPassword === "") {
+    res.status(400).send("Please fill in the empty spaces");
+  };
+
+  if (!checkEmailAvailable(registerEmail, users)) {
+    res.status(400).send("That email is taken. Try another")
+  }
+
+  users[id] = {id: id, email: registerEmail, password: registerPassword};
   res.cookie('user_id', users[id].id);
   console.log('users', users);
   res.redirect("/urls");
 });
 
 // LOGIN
-// app.get("/login", (req, res) => {
-//   res.render('login');
-// });
+app.get("/login", (req, res) => {
+  res.render('login');
+});
 
 app.post("/login", (req, res) => {
   res.cookie('username', req.body.username);
   res.redirect("/urls");
 });
-
-// app.post("/login", (req, res) => {
-
-//   const testEmail = req.body.email;
-//   const testPassword = req.body.password;
-
-//   if (testPassword === users[testEmail].password)  {
-//     res.setCookie('user', testEmail);
-//     res.redirect("/urls");
-//   } else {
-//     res.redirect('/login');
-//   }
-// });
 
 app.post("/logout", (req, res) => {
     res.clearCookie('username', req.cookies["username"])
