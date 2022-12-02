@@ -47,8 +47,6 @@ function generateRandomString() {
   return (Math.random() + 1).toString(36).slice(2,8);
 }
 
-
-
 const urlsForUser = (id) => {
   const userURL = {};
   for (const key in urlDatabase) {
