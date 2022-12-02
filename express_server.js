@@ -9,18 +9,24 @@ app.use(cookieParser());
 
 // ----------------- STORED DATA ----------------------
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+    longURL: "https://www.lighthouselabs.ca",
+    userID: "aJ46lW",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW",
+  },
 };
 
 const users = {
-  cheeto: {
-    id: "cheeto",
+  aJ46lW: {
+    id: "aJ46lW",
     email: "to@example.com",
     password: "to123",
   },
-  megatron: {
-    id: "megatron",
+  aJ48lW: {
+    id: "aJ48lW",
     email: "meo@example.com",
     password: "meo123",
   },
@@ -46,7 +52,15 @@ const checkEmailAvailable = (newEmail) => {
   return false;
 };
 
-
+const urlsForUser = (id) => {
+  const userURL = {};
+  for (const key in urlDatabase) {
+    if (urlDatabase[key].userID === id) {
+      userURL[key] = urlDatabase[key];
+    }
+  }
+  return userURL;
+};
 //------------------------------------------------------------
 
 app.get("/", (req, res) => {
@@ -59,59 +73,107 @@ app.get("/urls.json", (req, res) => {
 
 // HOME
 app.get("/urls", (req, res) => {
-  const templateVars = {
-    urls: urlDatabase,
-    user: req.cookies["user_id"]};
+  const id = req.cookies.user_id
+  const user = users[id]
+  if(!user){
+    return res.status(401).send("Please log in to view URLs");
+  }
+
+  const urls = urlsForUser(id);
+  console.log(urls)
+
+  const templateVars = {urls, user};
+
   res.render("urls_index", templateVars);
 });
 
 app.post("/urls", (req, res) => {
-  if (!req.cookies["user_id"]) {
-    res.status(401).send("Login to shorten URL");
-  } else {
+  const userID = req.cookies.user_id
+  const user = users[userID]
+
+  if (!user) {
+    return res.status(401).send("Login to shorten URL");
+  } 
+
+    // console.log('postURLs', req.body); 
+
     const randomStr = generateRandomString();
     urlDatabase[randomStr] = {
       longURL: req.body.longURL,
-      userID: req.cookies["user_id"]
+      userID
     };
+
+    console.log(urlDatabase)
+
     res.redirect(`urls/${randomStr}`);
-  }
 });
 
+// ADD NEW URL
 app.get("/urls/new", (req,res) => {
   const templateVars = {
     user: users[req.cookies["user_id"]]
   };
   if (templateVars.user) {
-    res.render("urls_new", templateVars);
+    return res.render("urls_new", templateVars);
   }
-  res.render("login", templateVars);
+    res.render("login", templateVars);
 });
 
+// LINK TO ID-WEBSITE
 app.get("/urls/:id", (req, res) => {
+  const id = req.params.id
+  const currentUserID = req.cookies.user_id
+
+  if (!urlDatabase[id]) {
+    return res.status(404).send("URL ID does not exist");
+  } 
+  if (!currentUserID) {
+    return res.status(401).send("Log in to view URLs");
+  }
+  if (urlDatabase[id].userID !== currentUserID){
+    return res.status(401).send("Do not have permission to view URL");
+  }
+
   const templateVars = {
     id: req.params.id,
-    longURL: urlDatabase[req.params.id],
+    longURL: urlDatabase[req.params.id].longURL,
     user: users[req.cookies["user_id"]]
   };
   res.render("urls_show", templateVars);
 });
 
-app.get("/u/:id", (req, res) => {
-
-  if (!urlDatabase[req.params.id]) {
-    res.status(404).send("URL ID does not exist");
-  }
-  const longURL = urlDatabase[req.params.id];
-  res.redirect(longURL);
-});
-
 app.post("/urls/:id", (req, res) => {
+
+  const id = req.params.id
+  const currentUserID = req.cookies.user_id
+
+  if (!urlDatabase[id]) {
+    return res.status(404).send("URL ID does not exist");
+  } 
+  if (!currentUserID) {
+    return res.status(401).send("Log in to view URLs");
+  }
+  if (urlDatabase[id].userID !== currentUserID){
+    return res.status(401).send("Do not have permission to view URL");
+  }
+
   const shortURL = req.params.id;
   const longURL = req.body.longURL;
   urlDatabase[shortURL] = longURL;
   res.redirect("/urls");
 });
+
+// ACCESSING WEBSITE LINK
+app.get("/u/:id", (req, res) => {
+  const id = req.params.id
+  
+  if (!urlDatabase[id]) {
+    return res.status(404).send("URL ID does not exist");
+  }
+  const longURL = urlDatabase[id].longURL;
+  res.redirect(longURL);
+});
+
 
 app.post("/urls/:id/delete", (req, res) => {
   delete urlDatabase[req.params.id];
