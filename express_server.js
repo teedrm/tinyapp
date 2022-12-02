@@ -124,14 +124,14 @@ app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
   const currentUserID = req.cookies.user_id;
 
+  if (urlDatabase[id].userID !== currentUserID) {
+    return res.status(401).send("Do not have permission to view URL");
+  }
   if (!urlDatabase[id]) {
     return res.status(404).send("URL ID does not exist");
   }
   if (!currentUserID) {
     return res.status(401).send("Log in to view URLs");
-  }
-  if (urlDatabase[id].userID !== currentUserID) {
-    return res.status(401).send("Do not have permission to view URL");
   }
 
   const templateVars = {
@@ -147,14 +147,14 @@ app.post("/urls/:id", (req, res) => {
   const id = req.params.id;
   const currentUserID = req.cookies.user_id;
 
+  if (urlDatabase[id].userID !== currentUserID) {
+    return res.status(401).send("Do not have permission to view URL");
+  }
   if (!urlDatabase[id]) {
     return res.status(404).send("URL ID does not exist");
   }
   if (!currentUserID) {
     return res.status(401).send("Log in to view URLs");
-  }
-  if (urlDatabase[id].userID !== currentUserID) {
-    return res.status(401).send("Do not have permission to view URL");
   }
 
   const shortURL = req.params.id;
@@ -175,6 +175,7 @@ app.get("/u/:id", (req, res) => {
 });
 
 
+// DELETE
 app.post("/urls/:id/delete", (req, res) => {
   const id = req.params.id;
   const currentUserID = req.cookies.user_id;
