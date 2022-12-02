@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require('cookie-parser');
+const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
 
@@ -23,17 +24,17 @@ const users = {
   aJ46lW: {
     id: "aJ46lW",
     email: "to@example.com",
-    password: "to123",
+    password: bcrypt.hashSync("to123", 10)
   },
   aJ48lW: {
     id: "aJ48lW",
     email: "meo@example.com",
-    password: "meo123",
+    password: bcrypt.hashSync("meo123", 10)
   },
   bumblebee: {
     id: "bumblebee",
     email: "bum@example.com",
-    password: "bum123",
+    password: bcrypt.hashSync("bum123", 10)
   }
 };
 
@@ -210,19 +211,25 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const registerEmail = req.body.email;
   const registerPassword = req.body.password;
+  const hashedPassword = bcrypt.hashSync(registerPassword, 10)
   const id = generateRandomString();
 
-  if (registerEmail === "" || registerPassword === "") {
+  if (registerEmail === "" || hashedPassword === "") {
     res.status(400).send("Please fill in the empty spaces");
   }
 
   if (checkEmailAvailable(registerEmail)) {
-    res.status(400).send("That email is taken. Try another");
+    res.status(400).send("Email is taken. Try another");
   }
 
-  users[id] = {id: id, email: registerEmail, password: registerPassword};
+  users[id] = {
+    id: id, 
+    email: registerEmail, 
+    password: hashedPassword
+  };
+
   res.cookie('user_id', users[id].id);
-  console.log('users', users);
+  // console.log('users', users);
   res.redirect("/urls");
 });
 
@@ -241,14 +248,15 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const userEmail = req.body.email;
   const userPassword = req.body.password;
+  console.log("USERPASSWORD:", userPassword)
   const user = checkEmailAvailable(userEmail);
-  
+  console.log("USER", user)
   if (!user) {
-    res.status(403).send("User cannot be found");
+    return res.status(403).send("User cannot be found");
   }
 
-  if (userPassword !== users[user].password) {
-    res.status(403).send("Incorrect password");
+  if (!bcrypt.compareSync(userPassword, users[user].password)) {
+    return res.status(403).send("Incorrect password");
   }
 
   res.cookie("user_id", user);
