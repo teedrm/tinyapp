@@ -3,6 +3,7 @@ const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
+const { checkEmailAvailable } = require("./helpers");
 
 app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
@@ -46,15 +47,7 @@ function generateRandomString() {
   return (Math.random() + 1).toString(36).slice(2,8);
 }
 
-// Check if email used for registration already exist/used
-const checkEmailAvailable = (newEmail) => {
-  for (const user in users) {
-    if (newEmail === users[user].email) {
-      return users[user].id;
-    }
-  }
-  return false;
-};
+
 
 const urlsForUser = (id) => {
   const userURL = {};
@@ -68,10 +61,10 @@ const urlsForUser = (id) => {
 //------------------------------------------------------------
 
 app.get("/", (req, res) => {
-  if(!req.session.user_id) {
+  if (!req.session.user_id) {
     return res.redirect("/login");
-  } 
-    res.redirect("/urls");
+  }
+  res.redirect("/urls");
 });
 
 app.get("/urls.json", (req, res) => {
@@ -215,20 +208,20 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const registerEmail = req.body.email;
   const registerPassword = req.body.password;
-  const hashedPassword = bcrypt.hashSync(registerPassword, 10)
+  const hashedPassword = bcrypt.hashSync(registerPassword, 10);
   const id = generateRandomString();
+
+  if (checkEmailAvailable(registerEmail, users)) {
+    res.status(400).send("Email is taken. Try another");
+  }
 
   if (registerEmail === "" || registerPassword === "") {
     res.status(400).send("Please fill in the empty spaces");
   }
 
-  if (checkEmailAvailable(registerEmail)) {
-    res.status(400).send("Email is taken. Try another");
-  }
-
   users[id] = {
-    id: id, 
-    email: registerEmail, 
+    id: id,
+    email: registerEmail,
     password: hashedPassword
   };
 
@@ -252,7 +245,7 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const userEmail = req.body.email;
   const userPassword = req.body.password;
-   const user = checkEmailAvailable(userEmail);
+  const user = checkEmailAvailable(userEmail, users);
 
   if (!user) {
     return res.status(403).send("User cannot be found");
